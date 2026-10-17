@@ -22,6 +22,7 @@ enum Command {
     Play(PathBuf),
     Toggle,
     Stop,
+    Finished,
 }
 
 struct RenderState {
@@ -49,7 +50,11 @@ impl Render for LocalRender {
                         return;
                     }
                     Err(TryRecvError::Disconnected) => {
-                        ACTIVE.store(false, Ordering::SeqCst);
+                        if ACTIVE.swap(false, Ordering::SeqCst)
+                            && let Some(sender) = COMMANDS.get()
+                        {
+                            let _ = sender.send(Command::Finished);
+                        }
                         out[written..].fill(0.0);
                         return;
                     }
@@ -186,6 +191,12 @@ fn run_player(commands: Receiver<Command>) {
                 render_state.receiver = receiver;
                 render_state.current.clear();
             }
+            Command::Finished => {
+                if let Some(output) = &mut output {
+                    output.pause();
+                }
+                paused = true;
+            }
         }
 
         if let Some(output) = &mut output
@@ -217,7 +228,6 @@ fn decode_file(path: PathBuf, sample_rate: u32, channels: u16, sender: SyncSende
     })();
     if let Err(error) = result {
         log::error!("local audio playback failed: {error:#}");
-        ACTIVE.store(false, Ordering::SeqCst);
     }
 }
 
