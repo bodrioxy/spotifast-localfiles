@@ -44,7 +44,12 @@ impl Render for LocalRender {
                 let next = state.receiver.try_recv();
                 match next {
                     Ok(samples) => state.current.extend(samples),
-                    Err(TryRecvError::Empty | TryRecvError::Disconnected) => {
+                    Err(TryRecvError::Empty) => {
+                        out[written..].fill(0.0);
+                        return;
+                    }
+                    Err(TryRecvError::Disconnected) => {
+                        ACTIVE.store(false, Ordering::SeqCst);
                         out[written..].fill(0.0);
                         return;
                     }
@@ -81,10 +86,11 @@ pub fn play(path: impl Into<PathBuf>) -> Result<()> {
     } else {
         let _ = file.open_decoder()?;
     }
-    commands()
-        .send(Command::Play(file.path))
-        .context("local audio player has stopped")?;
     ACTIVE.store(true, Ordering::SeqCst);
+    if let Err(error) = commands().send(Command::Play(file.path)) {
+        ACTIVE.store(false, Ordering::SeqCst);
+        return Err(error).context("local audio player has stopped");
+    }
     Ok(())
 }
 
