@@ -137,7 +137,7 @@ protobuf = "3"
 # rodio backend unwraps the device open on the player thread, and a release
 # build aborts on panic, so it is left out. rodio supplies the mixer and the
 # queue only; fastframe-audio below owns the device stream.
-rodio = { version = "0.21", default-features = false }
+rodio = { version = "0.21", default-features = false, features = ["symphonia-flac", "symphonia-mp3", "symphonia-wav"] }
 # `socks` is SOCKS5 proxy support for the Web API, artwork, lyrics, and
 # update checks. HTTP proxies work without it. `system-proxy` reads the OS
 # proxy on macOS and Windows when the mode is System; Linux uses environment
