@@ -28,7 +28,7 @@ struct RenderState {
     receiver: Receiver<Vec<f32>>,
     current: VecDeque<f32>,
 }
- 
+
 struct LocalRender {
     state: Arc<Mutex<RenderState>>,
 }
@@ -189,14 +189,17 @@ fn run_player(commands: Receiver<Command>) {
             ACTIVE.store(false, Ordering::SeqCst);
         }
     }
-
 }
 
 fn decode_file(path: PathBuf, sample_rate: u32, channels: u16, sender: SyncSender<Vec<f32>>) {
     let result = (|| -> Result<()> {
         if is_wav(&path) {
             let (source_channels, source_rate, samples) = read_wav(&path)?;
-            let source = rodio::buffer::SamplesBuffer::new(source_channels, source_rate, samples);
+            let source = rodio::buffer::SamplesBuffer::new(
+                source_channels,
+                source_rate,
+                samples,
+            );
             send_samples(UniformSourceIterator::new(source, channels, sample_rate), &sender)
         } else {
             let file = File::open(&path)
@@ -340,8 +343,12 @@ impl LocalFile {
                 path.display()
             );
         }
-        let title = path.file_stem().and_then(|name| name.to_str())
-            .filter(|name| !name.trim().is_empty()).unwrap_or("Local audio").to_owned();
+        let title = path
+            .file_stem()
+            .and_then(|name| name.to_str())
+            .filter(|name| !name.trim().is_empty())
+            .unwrap_or("Local audio")
+            .to_owned();
         Ok(Self { path, title })
     }
 
