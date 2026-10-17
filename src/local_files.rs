@@ -45,7 +45,8 @@ impl Render for LocalRender {
         let mut written = 0;
         while written < out.len() {
             if state.current.is_empty() {
-                match state.receiver.try_recv() {
+                let next = state.receiver.try_recv();
+                match next {
                     Ok(samples) => state.current.extend(samples),
                     Err(TryRecvError::Empty | TryRecvError::Disconnected) => {
                         out[written..].fill(0.0);
