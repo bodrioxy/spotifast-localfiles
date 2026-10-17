@@ -288,6 +288,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                     .add_filter("Audio files", &["mp3", "flac", "wav"])
                     .pick_file()
             {
+                if app.now_playing().is_some_and(|now| now.local && now.playing) {
+                    app.backend.player(crate::player::PlayerCommand::Toggle);
+                }
                 if let Err(error) = crate::local_files::play(file.path().to_path_buf()) {
                     log::error!("could not play local audio file: {error:#}");
                 }
