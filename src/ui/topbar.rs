@@ -280,6 +280,33 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
             }
             ui.add_space(8.0);
 
+            // Local files use their own decoder and audio stream; they never
+            // need to be uploaded or resolved through Spotify.
+            if ui
+                .button("Open audio file")
+                .on_hover_text("Play an MP3, FLAC, or WAV file from this computer")
+                .clicked()
+                && let Some(file) = rfd::FileDialog::new()
+                    .set_title("Open local audio file")
+                    .add_filter("Audio files", &["mp3", "flac", "wav"])
+                    .pick_file()
+            {
+                if app.now_playing().is_some_and(|now| now.local && now.playing) {
+                    app.backend.player(crate::player::PlayerCommand::Toggle);
+                }
+                if let Err(error) = crate::local_files::play(file.path().to_path_buf()) {
+                    log::error!("could not play local audio file: {error:#}");
+                }
+            }
+            if crate::local_files::is_active() {
+                if ui.button("Pause / resume local").clicked() {
+                    crate::local_files::toggle();
+                }
+                if ui.button("Stop local").clicked() {
+                    crate::local_files::stop();
+                }
+            }
+
             // The badges sit at the right end but grow with their text, so
             // measure them here, before the search field takes its share.
             let remote_now = app.now_playing().filter(|now| !now.local);
