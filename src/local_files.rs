@@ -120,7 +120,12 @@ fn run_player(commands: Receiver<Command>) {
         match command {
             Command::Play(path) => {
                 let opened = if output.is_none() {
-                    match Output::open(OutputOptions::default(), LocalRender { state: Arc::clone(&state) }) {
+                    match Output::open(
+                        OutputOptions::default(),
+                        LocalRender {
+                            state: Arc::clone(&state),
+                        },
+                    ) {
                         Ok(opened) => {
                             output = Some(opened);
                             true
@@ -148,7 +153,7 @@ fn run_player(commands: Receiver<Command>) {
                 output_ref.resume();
                 paused = false;
                 let sample_rate = output_ref.sample_rate();
-                let channels = usize::from(output_ref.channels().max(1));
+                let channels = output_ref.channels().max(1);
                 thread::Builder::new()
                     .name("spotifast-local-decoder".into())
                     .spawn(move || decode_file(path, sample_rate, channels, sender))
@@ -187,7 +192,7 @@ fn run_player(commands: Receiver<Command>) {
 
 }
 
-fn decode_file(path: PathBuf, sample_rate: u32, channels: usize, sender: SyncSender<Vec<f32>>) {
+fn decode_file(path: PathBuf, sample_rate: u32, channels: u16, sender: SyncSender<Vec<f32>>) {
     let result = (|| -> Result<()> {
         if is_wav(&path) {
             let (source_channels, source_rate, samples) = read_wav(&path)?;
@@ -300,7 +305,9 @@ fn read_wav(path: &Path) -> Result<(u16, u32, Vec<f32>)> {
             (1, 8) => (f32::from(sample[0]) - 128.0) / 128.0,
             (1, 16) => i16::from_le_bytes([sample[0], sample[1]]) as f32 / 32768.0,
             (1, 24) => {
-                let raw = i32::from(sample[0]) | (i32::from(sample[1]) << 8) | (i32::from(sample[2]) << 16);
+                let raw = i32::from(sample[0])
+                    | (i32::from(sample[1]) << 8)
+                    | (i32::from(sample[2]) << 16);
                 let signed = (raw << 8) >> 8;
                 signed as f32 / 8_388_608.0
             }
