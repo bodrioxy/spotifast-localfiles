@@ -27,18 +27,14 @@ enum Command {
 struct RenderState {
     receiver: Receiver<Vec<f32>>,
     current: VecDeque<f32>,
-    channels: usize,
 }
-
+ 
 struct LocalRender {
     state: Arc<Mutex<RenderState>>,
 }
 
 impl Render for LocalRender {
-    fn configure(&mut self, _sample_rate: u32, channels: u16) {
-        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
-        state.channels = usize::from(channels.max(1));
-    }
+    fn configure(&mut self, _sample_rate: u32, _channels: u16) {}
 
     fn render(&mut self, out: &mut [f32]) {
         let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
@@ -116,7 +112,6 @@ fn run_player(commands: Receiver<Command>) {
     let state = Arc::new(Mutex::new(RenderState {
         receiver: sample_rx,
         current: VecDeque::new(),
-        channels: 2,
     }));
     let mut output: Option<Output<LocalRender>> = None;
     let mut paused = false;
@@ -182,14 +177,11 @@ fn run_player(commands: Receiver<Command>) {
             }
         }
 
-        if let Some(output) = &mut output {
-            match output.maintain() {
-                Maintained::Failed(error) => {
-                    log::error!("local audio output failed: {error}");
-                    ACTIVE.store(false, Ordering::SeqCst);
-                }
-                _ => {}
-            }
+        if let Some(output) = &mut output
+            && let Maintained::Failed(error) = output.maintain()
+        {
+            log::error!("local audio output failed: {error}");
+            ACTIVE.store(false, Ordering::SeqCst);
         }
     }
 
