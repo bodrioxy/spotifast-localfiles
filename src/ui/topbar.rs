@@ -282,7 +282,10 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
 
             // Local files use their own decoder and audio stream; they never
             // need to be uploaded or resolved through Spotify.
-            if ui.button("Open audio file").on_hover_text("Play an MP3, FLAC, or WAV file from this computer").clicked()
+            if ui
+                .button("Open audio file")
+                .on_hover_text("Play an MP3, FLAC, or WAV file from this computer")
+                .clicked()
                 && let Some(file) = rfd::FileDialog::new()
                     .set_title("Open local audio file")
                     .add_filter("Audio files", &["mp3", "flac", "wav"])
