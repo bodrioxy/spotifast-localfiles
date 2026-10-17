@@ -111,13 +111,12 @@ pub fn is_active() -> bool {
 }
 
 fn run_player(commands: Receiver<Command>) {
-    let (samples, sample_rx) = mpsc::sync_channel::<Vec<f32>>(8);
+    let (_, sample_rx) = mpsc::sync_channel::<Vec<f32>>(8);
     let state = Arc::new(Mutex::new(RenderState {
         receiver: sample_rx,
         current: VecDeque::new(),
         channels: 2,
     }));
-    let renderer = LocalRender { state: Arc::clone(&state) };
     let mut output: Option<Output<LocalRender>> = None;
     let mut paused = false;
 
@@ -193,7 +192,6 @@ fn run_player(commands: Receiver<Command>) {
         }
     }
 
-    let _ = samples;
 }
 
 fn decode_file(path: PathBuf, sample_rate: u32, channels: usize, sender: SyncSender<Vec<f32>>) {
